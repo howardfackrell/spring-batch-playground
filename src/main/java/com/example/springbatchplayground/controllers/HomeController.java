@@ -1,20 +1,27 @@
 package com.example.springbatchplayground.controllers;
 
-import org.springframework.batch.core.Job;
+import batch.commands.Action;
+import batch.commands.JobCommand;
+import org.springframework.batch.core.*;
 
-import org.springframework.batch.core.JobInstance;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.converter.DefaultJobParametersConverter;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.launch.NoSuchJobExecutionException;
+import org.springframework.batch.core.launch.NoSuchJobInstanceException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
 
-import java.util.List;
+import java.time.Instant;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Controller
 public class HomeController {
@@ -31,6 +38,11 @@ public class HomeController {
 
   @Autowired
   JobOperator jobOperator;
+
+  @Autowired
+  JobExplorer jobExplorer;
+
+  Random random = new Random();
 
   @GetMapping(path = "/home")
   public String home() {
@@ -51,6 +63,28 @@ public class HomeController {
     return "hello";
   }
 
+  @GetMapping(path = "printParams")
+  public String printParams() throws Exception {
+
+    JobParameters parameters =
+        new JobParametersBuilder()
+            .addLong("longParam", 42L, false)
+            .addDouble("doubleParam", 3.14d, false)
+            .addDate("dateParam", new Date(), false)
+            .addString("stringParam", "Hello", false)
+            .addString("uniqueParam", Instant.now().toString(), true)
+            .toJobParameters();
+
+    DefaultJobParametersConverter jobParametersConverter = new DefaultJobParametersConverter();
+    Properties props = jobParametersConverter.getProperties(parameters);
+    StringBuilder parametersString = new StringBuilder();
+    props.forEach((k, v) -> parametersString.append(k).append("=").append(v).append("\n"));
+
+    System.out.println("Parameters String: " + parametersString.toString());
+    jobOperator.start("printParamJob", parametersString.toString());
+    return "printParams";
+  }
+
 
   @GetMapping(path = "stats")
   public String stats() throws Exception {
@@ -58,22 +92,46 @@ public class HomeController {
     System.out.println("Job names: ");
     jobOperator.getJobNames().stream().forEach(System.out::println);
 
-    List<Long> jobInstancesIds =  jobOperator.getJobInstances("print-hello-job", 0, 3);
+    List<Long> jobInstancesIds =  jobOperator.getJobInstances("rabbit-job", 0, 3);
 
-    List<String> jobSummaries = jobInstancesIds.stream().map(id -> {
-      try {
-        return jobOperator.getSummary(id);
-      } catch (NoSuchJobExecutionException e) {
-        e.printStackTrace();
-        return null;
-      }
-    }).filter(x -> x != null).collect(Collectors.toList());
-    jobSummaries.stream().forEach(
-            instance -> {
-              System.out.println("Summary:" + instance);
-            }
-    );
+    List<Long> exectuationIds = jobOperator.getExecutions(jobInstancesIds.get(0));
+
+    for (Long executionId : exectuationIds) {
+      String summary = jobOperator.getSummary(executionId);
+      System.out.println("Summary: " + summary);
+    }
 
     return "stats";
   }
+
+  @GetMapping(path = "jobs")
+  public ModelAndView jobs() throws Exception {
+    List<String> jobNames = jobExplorer.getJobNames();
+
+    Map<String, Object> model = new HashMap<>();
+    model.put("jobNames", jobNames);
+    return new ModelAndView("jobs", model);
+  }
+
+  @GetMapping(path = "jobs/{jobName}/instances")
+  public ModelAndView instances(@PathVariable("jobName") String jobName, @RequestParam("from") int from, @RequestParam("count") int count) throws Exception {
+
+    List<JobInstance> instances = jobExplorer.getJobInstances(jobName, from, count);
+
+    Map<Long, List<JobExecution>> instanceExecutions = new HashMap<>();
+
+    for(JobInstance instance : instances) {
+      instanceExecutions.put(instance.getInstanceId(), jobExplorer.getJobExecutions(instance));
+    }
+
+    Map<String, Object> model = new HashMap<>();
+
+    model.put("jobName", jobName);
+    model.put("instances", instances);
+    model.put("instanceExecutions", instanceExecutions);
+
+    return new ModelAndView("instances", model);
+  }
+
+
 }

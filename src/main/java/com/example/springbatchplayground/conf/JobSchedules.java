@@ -28,17 +28,15 @@ public class JobSchedules {
     @Autowired
     Job rabbitJob;
 
-    @Scheduled(zone = "MST", cron="0/10 * * * * *")
+    @Scheduled(zone = "MST", cron="0/50 * * * * *")
     public void runTheRabbit() {
 
         try {
             List<Long> instanceIds = jobOperator.getJobInstances("rabbit-job", 0, 1);
-            Long id = instanceIds.get(0);
+            Long id = instanceIds.size() > 0 ? instanceIds.get(0) : 1L;
 
-            JobParameters parameters = new JobParametersBuilder().addLong("id", id).toJobParameters();
+            jobOperator.startNextInstance("rabbit-job");
 
-//            jobOperator.startNextInstance("rabbit-job");
-            jobLauncher.run(rabbitJob, rabbitJob.getJobParametersIncrementer().getNext(parameters));
         } catch (Exception e) {
             System.err.println("couldn't start the rabbit job");
             e.printStackTrace();

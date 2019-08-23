@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+  <head></head>
+  <body>
+    <h1>Jobs</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Job Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="jobName: ${jobNames}">
+          <td>
+            <a th:href="@{jobs/{jobName}/instances(jobName=${jobName}, from=0, count=5)}" th:text="${jobName}" />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </body>
+</html>

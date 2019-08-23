@@ -1,0 +1,40 @@
+{
+  "type": "record",
+  "name": "JobCommand",
+  "namespace": "batch.commands",
+  "fields": [
+    {
+      "name": "correlationId",
+      "type": "long"
+    },
+    {
+      "name": "executionId",
+      "type": "long"
+    },
+    {
+      "name": "action",
+      "type": {
+        "type": "enum",
+        "name": "Action",
+        "symbols": [
+          "RUN",
+          "RERUN",
+          "STOP",
+          "DELETE",
+          "SHUTDOWN"
+        ]
+      }
+    },
+    {
+      "name": "jobName",
+      "type": "string"
+    },
+    {
+      "name": "jobParameters",
+      "type": {
+        "type": "map",
+        "values": "string"
+      }
+    }
+  ]
+}

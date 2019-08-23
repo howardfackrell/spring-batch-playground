@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<html xmlns:th="http://www.thymeleaf.org">
+  <head></head>
+  <body>
+
+    <h1 th:text="${jobName}" />
+    <div th:each="instance: ${instances}">
+      <h2 th:text="|Instance ${instance.getInstanceId()}|" />
+      <div>
+        <table width="90%">
+          <thead>
+            <th>Instance Id</th>
+            <th>Execution Id</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Status</th>
+            <th>Parameters</th>
+          </thead>
+          <tbody>
+          <tr th:each="exectution: ${instanceExecutions.get(instance.getInstanceId())}">
+            <td th:text="${exectution.getJobInstance().getInstanceId()}" ></td>
+            <td th:text="${exectution.getId()}" ></td>
+            <td th:text="${exectution.getStartTime()}" ></td>
+            <td th:text="${exectution.getEndTime()}" ></td>
+            <td th:text="${exectution.getStatus()}" ></td>
+            <td th:text="${exectution.getJobParameters()}" ></td>
+          </tr>
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+  </body>
+</html>
